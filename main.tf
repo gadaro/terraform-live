@@ -24,12 +24,14 @@ data "aws_subnet_ids" "all" {
   vpc_id = "${data.aws_vpc.selected.id}"
 }
 
+# LB across all subnets
 resource "aws_lb" "example" {
     name = "terraform-alb-example"
     security_groups = ["${aws_security_group.lb.id}"]
     subnets = ["${data.aws_subnet_ids.all.ids}"]
 }
 
+# Forward to target group
 resource "aws_lb_listener" "example" {
     load_balancer_arn = "${aws_lb.example.arn}"
     port = "80"
