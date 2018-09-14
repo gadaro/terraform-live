@@ -3,6 +3,11 @@ provider "aws" {
   version = "~> 1.36"
 }
 
+terraform {
+  # The configuration for this backend will be filled in by Terragrunt
+  backend "s3" {}
+}
+
 variable "server_port" {
   description = "The port the server will use for HTTP requests"
   default     = "8080"
@@ -24,12 +29,14 @@ data "aws_subnet_ids" "all" {
   vpc_id = "${data.aws_vpc.selected.id}"
 }
 
+# LB across all subnets
 resource "aws_lb" "example" {
     name = "terraform-alb-example"
     security_groups = ["${aws_security_group.lb.id}"]
     subnets = ["${data.aws_subnet_ids.all.ids}"]
 }
 
+# Forward to target group
 resource "aws_lb_listener" "example" {
     load_balancer_arn = "${aws_lb.example.arn}"
     port = "80"
@@ -81,7 +88,7 @@ resource "aws_launch_configuration" "example" {
     user_data = <<-EOF
                 #!bin/bash
                 yum install -y httpd
-                echo "Online server" > /var/www/html/index.html
+                echo "Connected to `curl -s http://169.254.169.254/latest/meta-data/local-hostname`" > /var/www/html/index.html
                 sed 's/Listen 80/Listen "${var.server_port}"/' /etc/httpd/conf/httpd.conf -i
                 service httpd start
                 EOF
