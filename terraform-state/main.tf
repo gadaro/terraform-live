@@ -4,10 +4,8 @@ provider "aws" {
 }
 
 terraform {
-  backend "s3" {
-    region = "eu-west-3"
-    key = "global/s3/terraform.tfstate"
-  }
+  # The configuration for this backend will be filled in by Terragrunt
+  backend "s3" {}
 }
 
 output "s3_bucket_arn" {

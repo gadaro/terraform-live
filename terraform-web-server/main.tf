@@ -3,6 +3,11 @@ provider "aws" {
   version = "~> 1.36"
 }
 
+terraform {
+  # The configuration for this backend will be filled in by Terragrunt
+  backend "s3" {}
+}
+
 variable "server_port" {
   description = "The port the server will use for HTTP requests"
   default     = "8080"
