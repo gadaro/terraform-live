@@ -88,7 +88,7 @@ resource "aws_launch_configuration" "example" {
     user_data = <<-EOF
                 #!bin/bash
                 yum install -y httpd
-                echo "Online server" > /var/www/html/index.html
+                echo "Connected to `curl -s http://169.254.169.254/latest/meta-data/local-hostname`" > /var/www/html/index.html
                 sed 's/Listen 80/Listen "${var.server_port}"/' /etc/httpd/conf/httpd.conf -i
                 service httpd start
                 EOF
