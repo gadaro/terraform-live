@@ -8,20 +8,6 @@ terraform {
   backend "s3" {}
 }
 
-variable "server_port" {
-  description = "The port the server will use for HTTP requests"
-  default     = "8080"
-}
-
-variable "lb_port" {
-  description = "The port the lb will use for HTTP requests"
-  default     = "80"
-}
-
-output "public_lb_dns" {
-  value = "${aws_lb.example.dns_name}"
-}
-
 # Fetched from the provider
 data "aws_availability_zones" "all" {}
 data "aws_vpc" "selected" {}
