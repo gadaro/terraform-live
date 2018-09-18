@@ -14,6 +14,24 @@ data "aws_vpc" "selected" {}
 data "aws_subnet_ids" "all" {
   vpc_id = "${data.aws_vpc.selected.id}"
 }
+data "terraform_remote_state" "db" {
+  backend = "s3"
+
+  config {
+    bucket = "terraform-state-neogabe"
+    key = "stage/data-stores/mysql/terraform.tfstate"
+    region = "eu-west-3"
+  }
+}
+data "template_file" "user_data" {
+  template = "${file("user_data.sh")}"
+
+  vars {
+    server_port = "${var.server_port}"
+    db_address  = "${data.terraform_remote_state.db.address}"
+    db_port     = "${data.terraform_remote_state.db.port}"
+  }
+}
 
 # LB across all subnets
 resource "aws_lb" "example" {
@@ -70,14 +88,8 @@ resource "aws_launch_configuration" "example" {
     instance_type   = "t2.micro"
     key_name        = "terraform-key"
     security_groups = ["${aws_security_group.instance.id}"]
-
-    user_data = <<-EOF
-                #!bin/bash
-                yum install -y httpd
-                echo "Connected to `curl -s http://169.254.169.254/latest/meta-data/local-hostname`" > /var/www/html/index.html
-                sed 's/Listen 80/Listen "${var.server_port}"/' /etc/httpd/conf/httpd.conf -i
-                service httpd start
-                EOF
+    # Rendered template file, replaced variables
+    user_data = "${data.template_file.user_data.rendered}"
 
     # Creates a new launch configuration before destoying the former one
     lifecycle {
