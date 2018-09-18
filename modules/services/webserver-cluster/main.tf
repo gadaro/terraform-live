@@ -1,8 +1,3 @@
-terraform {
-  # The configuration for this backend will be filled in by Terragrunt
-  backend "s3" {}
-}
-
 # Fetched from the provider
 data "aws_availability_zones" "all" {}
 data "aws_vpc" "selected" {}
@@ -13,13 +8,13 @@ data "terraform_remote_state" "db" {
   backend = "s3"
 
   config {
-    bucket = "terraform-state-neogabe"
-    key = "stage/data-stores/mysql/terraform.tfstate"
+    bucket = "${var.db_remote_state_bucket}"
+    key = "${var.db_remote_state_key}"
     region = "eu-west-3"
   }
 }
 data "template_file" "user_data" {
-  template = "${file("user_data.sh")}"
+  template = "${file("${path.module}/user_data.sh")}"
 
   vars {
     server_port = "${var.server_port}"
@@ -30,7 +25,7 @@ data "template_file" "user_data" {
 
 # LB across all subnets
 resource "aws_lb" "example" {
-    name            = "terraform-alb-example"
+    name            = "${var.cluster_name}-lb"
     security_groups = ["${aws_security_group.lb.id}"]
     subnets         = ["${data.aws_subnet_ids.all.ids}"]
 }
@@ -48,7 +43,7 @@ resource "aws_lb_listener" "example" {
 }
 
 resource "aws_lb_target_group" "example" {
-    name     = "terraform-alb-tg-example"
+    name     = "${var.cluster_name}-lb-tg"
     port     = "${var.server_port}"
     protocol = "HTTP"
     vpc_id   = "${data.aws_vpc.selected.id}"
@@ -72,7 +67,7 @@ resource "aws_autoscaling_group" "example" {
 
     tag {
       key                 = "Name"
-      value               = "terraform-asg-example"
+      value               = "${var.cluster_name}-asg"
       propagate_at_launch = true
     }
 
@@ -93,7 +88,7 @@ resource "aws_launch_configuration" "example" {
 }
 
 resource "aws_security_group" "instance" {
-    name = "terraform-example-instance-sg"
+    name = "${var.cluster_name}-i-sg"
 
     egress {
       from_port   = 0
@@ -117,7 +112,7 @@ resource "aws_security_group_rule" "instance" {
 }
 
 resource "aws_security_group" "lb" {
-    name = "terraform-example-lb-sg"
+    name = "${var.cluster_name}-lb-sg"
 
     egress {
       from_port   = 0
