@@ -8,11 +8,11 @@ terraform {
   backend "s3" {}
 }
 
-resource "aws_db_instance" "example" {
-  engine            = "mysql"
-  allocated_storage = 10
-  instance_class    = "db.t2.micro"
-  name              = "example_database"
-  username          = "admin"
-  password          = "${var.db_password}"
+module "mysql" {
+  source = "../../../modules/data-stores/mysql"
+
+  db_name = "mysql_database_stage"
+  db_instance = "db.t2.micro"
+  db_storage = 10
+  db_password = "$temporal1" # TODO Improve
 }

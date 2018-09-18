@@ -62,20 +62,19 @@ resource "aws_autoscaling_group" "example" {
     availability_zones   = ["${data.aws_availability_zones.all.names}"]
     target_group_arns    = ["${aws_lb_target_group.example.arn}"]
 
-    min_size = 2
-    max_size = 4
+    min_size = "${var.min_size}"
+    max_size = "${var.max_size}"
 
     tag {
       key                 = "Name"
       value               = "${var.cluster_name}-asg"
       propagate_at_launch = true
     }
-
 }
 
 resource "aws_launch_configuration" "example" {
     image_id        = "ami-06340c8c12baa6a09"
-    instance_type   = "t2.micro"
+    instance_type   = "${var.instance_type}"
     key_name        = "terraform-key"
     security_groups = ["${aws_security_group.instance.id}"]
     # Rendered template file, replaced variables
