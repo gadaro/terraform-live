@@ -1,41 +1,49 @@
-provider "aws" {
-  region  = "eu-west-3"
-  version = "~> 1.36"
-}
-
-terraform {
-  # The configuration for this backend will be filled in by Terragrunt
-  backend "s3" {}
-}
-
 # Fetched from the provider
 data "aws_availability_zones" "all" {}
 data "aws_vpc" "selected" {}
 data "aws_subnet_ids" "all" {
   vpc_id = "${data.aws_vpc.selected.id}"
 }
+data "terraform_remote_state" "db" {
+  backend = "s3"
+
+  config {
+    bucket = "${var.db_remote_state_bucket}"
+    key = "${var.db_remote_state_key}"
+    region = "eu-west-3"
+  }
+}
+data "template_file" "user_data" {
+  template = "${file("${path.module}/user_data.sh")}"
+
+  vars {
+    server_port = "${var.server_port}"
+    db_address  = "${data.terraform_remote_state.db.address}"
+    db_port     = "${data.terraform_remote_state.db.port}"
+  }
+}
 
 # LB across all subnets
 resource "aws_lb" "example" {
-    name = "terraform-alb-example"
+    name            = "${var.cluster_name}-lb"
     security_groups = ["${aws_security_group.lb.id}"]
-    subnets = ["${data.aws_subnet_ids.all.ids}"]
+    subnets         = ["${data.aws_subnet_ids.all.ids}"]
 }
 
 # Forward to target group
 resource "aws_lb_listener" "example" {
-    load_balancer_arn = "${aws_lb.example.arn}"
-    port = "80"
-    protocol = "HTTP"
+    load_balancer_arn  = "${aws_lb.example.arn}"
+    port               = "80"
+    protocol           = "HTTP"
 
     default_action {
-      type = "forward"
+      type             = "forward"
       target_group_arn = "${aws_lb_target_group.example.arn}"
     }
 }
 
 resource "aws_lb_target_group" "example" {
-    name     = "terraform-alb-tg-example"
+    name     = "${var.cluster_name}-lb-tg"
     port     = "${var.server_port}"
     protocol = "HTTP"
     vpc_id   = "${data.aws_vpc.selected.id}"
@@ -59,7 +67,7 @@ resource "aws_autoscaling_group" "example" {
 
     tag {
       key                 = "Name"
-      value               = "terraform-asg-example"
+      value               = "${var.cluster_name}-asg"
       propagate_at_launch = true
     }
 
@@ -70,14 +78,8 @@ resource "aws_launch_configuration" "example" {
     instance_type   = "t2.micro"
     key_name        = "terraform-key"
     security_groups = ["${aws_security_group.instance.id}"]
-
-    user_data = <<-EOF
-                #!bin/bash
-                yum install -y httpd
-                echo "Connected to `curl -s http://169.254.169.254/latest/meta-data/local-hostname`" > /var/www/html/index.html
-                sed 's/Listen 80/Listen "${var.server_port}"/' /etc/httpd/conf/httpd.conf -i
-                service httpd start
-                EOF
+    # Rendered template file, replaced variables
+    user_data = "${data.template_file.user_data.rendered}"
 
     # Creates a new launch configuration before destoying the former one
     lifecycle {
@@ -86,7 +88,7 @@ resource "aws_launch_configuration" "example" {
 }
 
 resource "aws_security_group" "instance" {
-    name = "terraform-example-instance-sg"
+    name = "${var.cluster_name}-i-sg"
 
     egress {
       from_port   = 0
@@ -101,16 +103,16 @@ resource "aws_security_group" "instance" {
 }
 
 resource "aws_security_group_rule" "instance" {
-    type        = "ingress"
-    from_port   = "${var.server_port}"
-    to_port     = "${var.server_port}"
-    protocol    = "tcp"
-    security_group_id = "${aws_security_group.instance.id}"
+    type                     = "ingress"
+    from_port                = "${var.server_port}"
+    to_port                  = "${var.server_port}"
+    protocol                 = "tcp"
+    security_group_id        = "${aws_security_group.instance.id}"
     source_security_group_id = "${aws_security_group.lb.id}"
 }
 
 resource "aws_security_group" "lb" {
-    name = "terraform-example-lb-sg"
+    name = "${var.cluster_name}-lb-sg"
 
     egress {
       from_port   = 0
@@ -125,10 +127,10 @@ resource "aws_security_group" "lb" {
 }
 
 resource "aws_security_group_rule" "lb" {
-    type        = "ingress"
-    from_port   = "${var.lb_port}"
-    to_port     = "${var.lb_port}"
-    protocol    = "tcp"
+    type              = "ingress"
+    from_port         = "${var.lb_port}"
+    to_port           = "${var.lb_port}"
+    protocol          = "tcp"
     security_group_id = "${aws_security_group.lb.id}"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks       = ["0.0.0.0/0"]
 }
