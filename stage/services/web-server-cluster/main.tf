@@ -17,19 +17,19 @@ data "aws_subnet_ids" "all" {
 
 # LB across all subnets
 resource "aws_lb" "example" {
-    name = "terraform-alb-example"
+    name            = "terraform-alb-example"
     security_groups = ["${aws_security_group.lb.id}"]
-    subnets = ["${data.aws_subnet_ids.all.ids}"]
+    subnets         = ["${data.aws_subnet_ids.all.ids}"]
 }
 
 # Forward to target group
 resource "aws_lb_listener" "example" {
-    load_balancer_arn = "${aws_lb.example.arn}"
-    port = "80"
-    protocol = "HTTP"
+    load_balancer_arn  = "${aws_lb.example.arn}"
+    port               = "80"
+    protocol           = "HTTP"
 
     default_action {
-      type = "forward"
+      type             = "forward"
       target_group_arn = "${aws_lb_target_group.example.arn}"
     }
 }
@@ -101,11 +101,11 @@ resource "aws_security_group" "instance" {
 }
 
 resource "aws_security_group_rule" "instance" {
-    type        = "ingress"
-    from_port   = "${var.server_port}"
-    to_port     = "${var.server_port}"
-    protocol    = "tcp"
-    security_group_id = "${aws_security_group.instance.id}"
+    type                     = "ingress"
+    from_port                = "${var.server_port}"
+    to_port                  = "${var.server_port}"
+    protocol                 = "tcp"
+    security_group_id        = "${aws_security_group.instance.id}"
     source_security_group_id = "${aws_security_group.lb.id}"
 }
 
@@ -125,10 +125,10 @@ resource "aws_security_group" "lb" {
 }
 
 resource "aws_security_group_rule" "lb" {
-    type        = "ingress"
-    from_port   = "${var.lb_port}"
-    to_port     = "${var.lb_port}"
-    protocol    = "tcp"
+    type              = "ingress"
+    from_port         = "${var.lb_port}"
+    to_port           = "${var.lb_port}"
+    protocol          = "tcp"
     security_group_id = "${aws_security_group.lb.id}"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks       = ["0.0.0.0/0"]
 }
