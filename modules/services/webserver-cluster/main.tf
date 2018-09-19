@@ -5,29 +5,29 @@ data "aws_subnet_ids" "all" {
   vpc_id = "${data.aws_vpc.selected.id}"
 }
 data "terraform_remote_state" "db" {
-  backend = "s3"
+  backend              = "s3"
 
   config {
-    bucket = "${var.db_remote_state_bucket}"
-    key = "${var.db_remote_state_key}"
-    region = "eu-west-3"
+    bucket             = "${var.db_remote_state_bucket}"
+    key                = "${var.db_remote_state_key}"
+    region             = "eu-west-3"
   }
 }
 data "template_file" "user_data" {
-  template = "${file("${path.module}/user_data.sh")}"
+  template             = "${file("${path.module}/user_data.sh")}"
 
   vars {
-    server_port = "${var.server_port}"
-    db_address  = "${data.terraform_remote_state.db.address}"
-    db_port     = "${data.terraform_remote_state.db.port}"
+    server_port        = "${var.server_port}"
+    db_address         = "${data.terraform_remote_state.db.address}"
+    db_port            = "${data.terraform_remote_state.db.port}"
   }
 }
 
 # LB across all subnets
 resource "aws_lb" "example" {
-    name            = "${var.cluster_name}-lb"
-    security_groups = ["${aws_security_group.lb.id}"]
-    subnets         = ["${data.aws_subnet_ids.all.ids}"]
+    name               = "${var.cluster_name}-lb"
+    security_groups    = ["${aws_security_group.lb.id}"]
+    subnets            = ["${data.aws_subnet_ids.all.ids}"]
 }
 
 # Forward to target group
@@ -43,10 +43,10 @@ resource "aws_lb_listener" "example" {
 }
 
 resource "aws_lb_target_group" "example" {
-    name     = "${var.cluster_name}-lb-tg"
-    port     = "${var.server_port}"
-    protocol = "HTTP"
-    vpc_id   = "${data.aws_vpc.selected.id}"
+    name               = "${var.cluster_name}-lb-tg"
+    port               = "${var.server_port}"
+    protocol           = "HTTP"
+    vpc_id             = "${data.aws_vpc.selected.id}"
 
     health_check {
       healthy_threshold   = 2
