@@ -9,7 +9,7 @@ terraform {
 }
 
 module "webserver_cluster" {
-  source = "../../../modules/services/webserver-cluster"
+  source = "git::git@github.com:neogabe/terraform-modules.git//services/webserver-cluster?ref=v1.0.1"
 
   cluster_name = "webserver-prod"
   db_remote_state_bucket = "terraform-state-neogabe"

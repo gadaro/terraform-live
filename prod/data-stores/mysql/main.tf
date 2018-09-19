@@ -9,7 +9,7 @@ terraform {
 }
 
 module "mysql" {
-  source = "../../../modules/data-stores/mysql"
+  source = "git::git@github.com:neogabe/terraform-modules.git//data-stores/mysql?ref=v1.0.1"
 
   db_name = "mysql_database_stage"
   db_instance = "db.t2.micro"
