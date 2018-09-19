@@ -89,47 +89,55 @@ resource "aws_launch_configuration" "example" {
 resource "aws_security_group" "instance" {
     name = "${var.cluster_name}-i-sg"
 
-    egress {
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-
     lifecycle {
       create_before_destroy = true
     }
 }
 
-resource "aws_security_group_rule" "instance" {
+resource "aws_security_group_rule" "allow_http_inbound_server" {
     type                     = "ingress"
+    security_group_id        = "${aws_security_group.instance.id}"
+    source_security_group_id = "${aws_security_group.lb.id}"
+
     from_port                = "${var.server_port}"
     to_port                  = "${var.server_port}"
     protocol                 = "tcp"
-    security_group_id        = "${aws_security_group.instance.id}"
-    source_security_group_id = "${aws_security_group.lb.id}"
+}
+
+resource "aws_security_group_rule" "allow_all_outbound_server" {
+    type              = "egress"
+    security_group_id = "${aws_security_group.instance.id}"
+
+    from_port         = 0
+    to_port           = 0
+    protocol          = "-1"
+    cidr_blocks       = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group" "lb" {
     name = "${var.cluster_name}-lb-sg"
 
-    egress {
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-
     lifecycle {
       create_before_destroy = true
     }
 }
 
-resource "aws_security_group_rule" "lb" {
+resource "aws_security_group_rule" "allow_http_inbound_lb" {
     type              = "ingress"
+    security_group_id = "${aws_security_group.lb.id}"
+
     from_port         = "${var.lb_port}"
     to_port           = "${var.lb_port}"
     protocol          = "tcp"
+    cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "allow_all_outbound_lb" {
+    type              = "egress"
     security_group_id = "${aws_security_group.lb.id}"
+
+    from_port         = 0
+    to_port           = 0
+    protocol          = "-1"
     cidr_blocks       = ["0.0.0.0/0"]
 }
