@@ -9,11 +9,11 @@ terraform {
 }
 
 module "mysql" {
-  source = "git::git@github.com:neogabe/terraform-modules.git//data-stores/mysql?ref=v1.0.1"
+  source      = "git::git@github.com:neogabe/terraform-modules.git//data-stores/mysql?ref=v1.0.1"
 
-  db_name = "mysql_database_stage"
+  db_name     = "mysql_database_stage"
   db_instance = "db.t2.micro"
-  db_storage = 20
+  db_storage  = 20
   # TODO Already defined in module, but it is needed twice for interactive input
   db_password = "${var.db_password}"
 }

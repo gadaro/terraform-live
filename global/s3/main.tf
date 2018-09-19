@@ -9,7 +9,7 @@ terraform {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-    bucket = "terraform-state-neogabe"
+    bucket    = "terraform-state-neogabe"
 
     versioning {
       enabled = true
