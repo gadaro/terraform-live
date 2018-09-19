@@ -5,29 +5,29 @@ data "aws_subnet_ids" "all" {
   vpc_id = "${data.aws_vpc.selected.id}"
 }
 data "terraform_remote_state" "db" {
-  backend = "s3"
+  backend              = "s3"
 
   config {
-    bucket = "${var.db_remote_state_bucket}"
-    key = "${var.db_remote_state_key}"
-    region = "eu-west-3"
+    bucket             = "${var.db_remote_state_bucket}"
+    key                = "${var.db_remote_state_key}"
+    region             = "eu-west-3"
   }
 }
 data "template_file" "user_data" {
-  template = "${file("${path.module}/user_data.sh")}"
+  template             = "${file("${path.module}/user_data.sh")}"
 
   vars {
-    server_port = "${var.server_port}"
-    db_address  = "${data.terraform_remote_state.db.address}"
-    db_port     = "${data.terraform_remote_state.db.port}"
+    server_port        = "${var.server_port}"
+    db_address         = "${data.terraform_remote_state.db.address}"
+    db_port            = "${data.terraform_remote_state.db.port}"
   }
 }
 
 # LB across all subnets
 resource "aws_lb" "example" {
-    name            = "${var.cluster_name}-lb"
-    security_groups = ["${aws_security_group.lb.id}"]
-    subnets         = ["${data.aws_subnet_ids.all.ids}"]
+    name               = "${var.cluster_name}-lb"
+    security_groups    = ["${aws_security_group.lb.id}"]
+    subnets            = ["${data.aws_subnet_ids.all.ids}"]
 }
 
 # Forward to target group
@@ -43,10 +43,10 @@ resource "aws_lb_listener" "example" {
 }
 
 resource "aws_lb_target_group" "example" {
-    name     = "${var.cluster_name}-lb-tg"
-    port     = "${var.server_port}"
-    protocol = "HTTP"
-    vpc_id   = "${data.aws_vpc.selected.id}"
+    name               = "${var.cluster_name}-lb-tg"
+    port               = "${var.server_port}"
+    protocol           = "HTTP"
+    vpc_id             = "${data.aws_vpc.selected.id}"
 
     health_check {
       healthy_threshold   = 2
@@ -62,20 +62,19 @@ resource "aws_autoscaling_group" "example" {
     availability_zones   = ["${data.aws_availability_zones.all.names}"]
     target_group_arns    = ["${aws_lb_target_group.example.arn}"]
 
-    min_size = 2
-    max_size = 4
+    min_size = "${var.min_size}"
+    max_size = "${var.max_size}"
 
     tag {
       key                 = "Name"
       value               = "${var.cluster_name}-asg"
       propagate_at_launch = true
     }
-
 }
 
 resource "aws_launch_configuration" "example" {
     image_id        = "ami-06340c8c12baa6a09"
-    instance_type   = "t2.micro"
+    instance_type   = "${var.instance_type}"
     key_name        = "terraform-key"
     security_groups = ["${aws_security_group.instance.id}"]
     # Rendered template file, replaced variables
