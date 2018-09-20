@@ -9,7 +9,7 @@ terraform {
 }
 
 module "webserver_cluster" {
-  source                 = "git::git@github.com:neogabe/terraform-modules.git//services/webserver-cluster?ref=v1.0.1"
+  source                 = "git::git@github.com:neogabe/terraform-modules.git//services/webserver-cluster?ref=v1.0.2"
 
   cluster_name           = "webserver-stage"
   db_remote_state_bucket = "terraform-state-neogabe"
@@ -17,4 +17,5 @@ module "webserver_cluster" {
   instance_type          = "t2.micro"
   min_size               = 2
   max_size               = 4
+  enable_autoscaling     = false
 }
